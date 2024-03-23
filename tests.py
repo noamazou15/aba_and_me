@@ -24,19 +24,18 @@ def filter_volatility_range(df, a, b):
     return df[(df['Volatility'] >= a) & (df['Volatility'] <= b)]
 
 
-def get_bounds_for_running_prob(weekly_changes_within_volatility_range):
+def get_bounds_for_running_prob(weekly_changes):
     bounds = {}
     for percentile in range(5, 50, 5):
         percentile = percentile / 100
-        range_lower, range_upper = weekly_changes_within_volatility_range.quantile(percentile), weekly_changes_within_volatility_range.quantile(1-percentile)
+        range_lower, range_upper = weekly_changes.quantile(percentile), weekly_changes.quantile(1-percentile)
         bounds[int((1-(percentile * 2)) * 100)] = (range_lower, range_upper)
     #dict to df
     bounds_df = pd.DataFrame(bounds.items(), columns=['Percentile', 'Bounds'])
     return bounds_df
 
-def get_percent_for_bound(a,b, weekly_changes_within_volatility_range):
-    return len(weekly_changes_within_volatility_range[(weekly_changes_within_volatility_range >= a) & (weekly_changes_within_volatility_range <= b)]) / len(weekly_changes_within_volatility_range) * 100
-
+def get_percent_for_bound(lower_bound,upper_bound, weekly_changes):
+    return len(weekly_changes[(weekly_changes >= lower_bound) & (weekly_changes <= upper_bound)]) / len(weekly_changes) * 100
 
 # Modified section for calculating percentage within custom bounds to display in table format
 def main():
@@ -79,17 +78,20 @@ def main():
         if st.checkbox('Calculate Percentage within Custom Bounds'):
             # Inputs for calculating percentage within custom bounds
             st.write('Calculate the percentage of weekly changes within custom bounds:')
-            custom_a = st.number_input('Enter lower bound for analysis:', value=st.session_state.a, key='custom_a')
-            custom_b = st.number_input('Enter upper bound for analysis:', value=st.session_state.b, key='custom_b')
+            lower_bound = st.number_input('Enter lower bound for analysis:', key='custom_a')
+            upper_bound = st.number_input('Enter upper bound for analysis:', key='custom_b')
             calculate_button = st.button('Calculate Percentage', key='calculate_percentage')
             if calculate_button:
-                percent_within_bounds = get_percent_for_bound(custom_a, custom_b, st.session_state.filtered_df['weekly_change'])
+                percent_within_bounds = get_percent_for_bound(lower_bound, upper_bound, st.session_state.filtered_df['weekly_change'])
+                percent_not_within_bounds = get_percent_for_bound(lower_bound, upper_bound, st.session_state.df['weekly_change'])
                 # Creating a pandas DataFrame to display the results as a table
+                st.write('*WCV is with current volatility of the stock taken into account.')
                 results_df = pd.DataFrame({
                     'Metric': ['Percentage of weekly changes within range'],
-                    'Value': [f'{percent_within_bounds:.2f}%'],
-                    'Range': [f'{custom_a:.2f} to {custom_b:.2f}'],
-                    'Range In Dollars': [f'{st.session_state.curr_price * (100+custom_a)/100 :.2f} to {st.session_state.curr_price * (100+custom_b)/100 :.2f}']
+                    'Value': [f'{percent_not_within_bounds:.2f}%'],
+                    'Value WCV': [f'{percent_within_bounds:.2f}%'],
+                    'Range': [f'{lower_bound:.2f} to {upper_bound:.2f}'],
+                    'Range In Dollars': [f'{st.session_state.curr_price * (100+lower_bound)/100 :.2f} to {st.session_state.curr_price * (100+upper_bound)/100 :.2f}']
                 })
                 st.table(results_df)
 
