@@ -29,7 +29,8 @@ def get_bounds_for_running_prob(weekly_changes):
     for percentile in range(5, 50, 5):
         percentile = percentile / 100
         range_lower, range_upper = weekly_changes.quantile(percentile), weekly_changes.quantile(1-percentile)
-        bounds[int((1-(percentile * 2)) * 100)] = (range_lower, range_upper)
+        #store 2 after decimal
+        bounds[int((1-(percentile * 2)) * 100)] = (round(range_lower,2), round(range_upper,2))
     #dict to df
     bounds_df = pd.DataFrame(bounds.items(), columns=['Percentile', 'Bounds'])
     return bounds_df
