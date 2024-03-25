@@ -5,8 +5,12 @@ import streamlit as st
 import pandas as pd
 
 
-def get_data(ticker, start_date= '2000-01-01', end_date = pd.to_datetime('today').strftime('%Y-%m-%d')):
-    df = yf.download(ticker, start=start_date, end=end_date, interval='1wk')
+
+def get_data(ticker, start_date= '2000-01-01', end_date = pd.to_datetime('today').strftime('%Y-%m-%d'), interval='1wk', period=None):
+    if period is not None:
+        df = yf.download(ticker, period=period, interval=interval)
+    else:
+        df = yf.download(ticker, start=start_date, end=end_date, interval=interval)
     window_size = 3
     log_returns = np.log(df['Adj Close'] / df['Adj Close'].shift(1))
     rolling_std_dev = log_returns.rolling(window=window_size).std()
@@ -65,7 +69,7 @@ def main():
         # Calculating and storing volatility range in session state
         st.session_state.a, st.session_state.b = get_volatility_range(st.session_state.df)
         st.session_state.filtered_df = filter_volatility_range(st.session_state.df, st.session_state.a, st.session_state.b)
-        st.session_state.curr_price = st.session_state.df["Close"].iloc[-1]
+        st.session_state.curr_price = get_data(ticker, interval='1m', period='1d').iloc[-1]['Close']
         st.write(f'Current {ticker} stock price: {st.session_state.curr_price:.2f}')
 
     if st.session_state.df is not None and st.session_state.filtered_df is not None:
